@@ -1,0 +1,44 @@
+# Maven
+target/
+logs/
+
+# IDEA #
+.idea
+.idea/
+.idea/*.xml
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+
+# Eclipse #
+.settings/
+.classpath
+.project
+*.class
+
+# 编译输出
+*.class
+*.jar
+*.war
+*.ear
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 其他
+*.orig
