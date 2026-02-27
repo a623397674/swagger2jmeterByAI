@@ -1,5 +1,6 @@
 /Users/xinmeiti/project/jmeter-jmx/swagger2jmeterByAI/src/main/java/com/tools/yajie/ApiParameter.java
 /Users/xinmeiti/project/jmeter-jmx/swagger2jmeterByAI/src/main/java/com/tools/yajie/ApiPath.java
+/Users/xinmeiti/project/jmeter-jmx/swagger2jmeterByAI/src/main/java/com/tools/yajie/JMeterElementBean.java
 /Users/xinmeiti/project/jmeter-jmx/swagger2jmeterByAI/src/main/java/com/tools/yajie/JMeterWriter.java
 /Users/xinmeiti/project/jmeter-jmx/swagger2jmeterByAI/src/main/java/com/tools/yajie/Swagger2JMeter.java
 /Users/xinmeiti/project/jmeter-jmx/swagger2jmeterByAI/src/main/java/com/tools/yajie/SwaggerModel.java

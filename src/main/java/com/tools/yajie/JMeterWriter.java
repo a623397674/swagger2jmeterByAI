@@ -40,7 +40,7 @@ public class JMeterWriter {
     }
     
     /**
-     * 创建新的JMeter文件结构
+     * 创建新的JMeter文件结构（参考yunying-cms-api.jmx模板）
      */
     private Document createNewJMeterDocument() {
         org.dom4j.Document document = org.dom4j.DocumentHelper.createDocument();
@@ -54,295 +54,93 @@ public class JMeterWriter {
         // 添加hashTree
         org.dom4j.Element hashTree1 = root.addElement("hashTree");
         
-        // 添加TestPlan
-        org.dom4j.Element testPlan = hashTree1.addElement("TestPlan");
-        testPlan.addAttribute("guiclass", "TestPlanGui");
-        testPlan.addAttribute("testclass", "TestPlan");
-        testPlan.addAttribute("testname", "测试计划");
-        testPlan.addAttribute("enabled", "true");
+        // 使用JMeterElementBean初始化占位元素
+        JMeterElementBean elementBean = new JMeterElementBean();
+        elementBean.initPlaceholderElements();
         
-        testPlan.addElement("stringProp").addAttribute("name", "TestPlan.comments").setText("");
-        testPlan.addElement("boolProp").addAttribute("name", "TestPlan.functional_mode").setText("false");
-        testPlan.addElement("boolProp").addAttribute("name", "TestPlan.tearDown_on_shutdown").setText("true");
-        testPlan.addElement("boolProp").addAttribute("name", "TestPlan.serialize_threadgroups").setText("false");
+        // 添加占位元素到hashTree1
+        for (Element element : elementBean.getElements()) {
+            hashTree1.add(element);
+        }
         
-        // 添加用户定义的变量
-        org.dom4j.Element userVariables = testPlan.addElement("elementProp").addAttribute("name", "TestPlan.user_defined_variables").addAttribute("elementType", "Arguments").addAttribute("guiclass", "ArgumentsPanel").addAttribute("testclass", "Arguments").addAttribute("testname", "用户定义的变量").addAttribute("enabled", "true");
-        userVariables.addElement("collectionProp").addAttribute("name", "Arguments.arguments");
+        // 填充TestPlan内容
+        Element testPlan = elementBean.findElement(JMeterElementBean.TYPE_TEST_PLAN, "测试计划");
+        if (testPlan != null) {
+            testPlan.addElement("boolProp").addAttribute("name", "TestPlan.functional_mode").setText("false");
+            testPlan.addElement("boolProp").addAttribute("name", "TestPlan.serialize_threadgroups").setText("false");
+            
+            // 添加用户定义的变量
+            org.dom4j.Element userVariables = testPlan.addElement("elementProp").addAttribute("name", "TestPlan.user_defined_variables").addAttribute("elementType", "Arguments").addAttribute("guiclass", "ArgumentsPanel").addAttribute("testclass", "Arguments").addAttribute("testname", "用户定义的变量").addAttribute("enabled", "true");
+            userVariables.addElement("collectionProp").addAttribute("name", "Arguments.arguments");
+            
+            testPlan.addElement("boolProp").addAttribute("name", "TestPlan.tearDown_on_shutdown").setText("true");
+        }
         
-        testPlan.addElement("stringProp").addAttribute("name", "TestPlan.user_define_classpath").setText("");
+        // 填充HTTP信息头内容
+        Element headerManager1 = elementBean.findElement(JMeterElementBean.TYPE_HEADER_MANAGER, JMeterElementBean.NAME_HTTP_HEADER);
+        if (headerManager1 != null) {
+            org.dom4j.Element headers = headerManager1.addElement("collectionProp").addAttribute("name", "HeaderManager.headers");
+            
+            // 添加deviceId头
+            org.dom4j.Element deviceIdHeader = headers.addElement("elementProp").addAttribute("name", "").addAttribute("elementType", "Header");
+            deviceIdHeader.addElement("stringProp").addAttribute("name", "Header.name").setText("deviceId");
+            deviceIdHeader.addElement("stringProp").addAttribute("name", "Header.value").setText("${deviceId}");
+            
+            // 添加token头
+            org.dom4j.Element tokenHeader = headers.addElement("elementProp").addAttribute("name", "").addAttribute("elementType", "Header");
+            tokenHeader.addElement("stringProp").addAttribute("name", "Header.name").setText("token");
+            tokenHeader.addElement("stringProp").addAttribute("name", "Header.value").setText("${token}");
+        }
         
-        // 添加TestPlan的hashTree
-        org.dom4j.Element hashTree2 = hashTree1.addElement("hashTree");
+        // 填充HTTP信息头-固定sn内容
+        Element headerManager2 = elementBean.findElement(JMeterElementBean.TYPE_HEADER_MANAGER, JMeterElementBean.NAME_HTTP_HEADER_FIXED);
+        if (headerManager2 != null) {
+            org.dom4j.Element headers = headerManager2.addElement("collectionProp").addAttribute("name", "HeaderManager.headers");
+            
+            // 添加Content-Type头
+            org.dom4j.Element contentTypeHeader = headers.addElement("elementProp").addAttribute("name", "Content-Type").addAttribute("elementType", "Header");
+            contentTypeHeader.addElement("stringProp").addAttribute("name", "Header.name").setText("Content-Type");
+            contentTypeHeader.addElement("stringProp").addAttribute("name", "Header.value").setText("application/json");
+            
+            // 添加Authorization头
+            org.dom4j.Element authHeader = headers.addElement("elementProp").addAttribute("name", "").addAttribute("elementType", "Header");
+            authHeader.addElement("stringProp").addAttribute("name", "Header.name").setText("Authorization");
+            authHeader.addElement("stringProp").addAttribute("name", "Header.value").setText("${token}");
+        }
         
-        // 添加HTTP信息头-固定sn
-        org.dom4j.Element headerManager = hashTree2.addElement("HeaderManager");
-        headerManager.addAttribute("guiclass", "HeaderPanel");
-        headerManager.addAttribute("testclass", "HeaderManager");
-        headerManager.addAttribute("testname", "HTTP信息头-固定");
-        headerManager.addAttribute("enabled", "true");
-        org.dom4j.Element headers = headerManager.addElement("collectionProp").addAttribute("name", "HeaderManager.headers");
-        
-        // 添加Content-Type头
-        org.dom4j.Element contentTypeHeader = headers.addElement("elementProp").addAttribute("name", "Content-Type").addAttribute("elementType", "Header");
-        contentTypeHeader.addElement("stringProp").addAttribute("name", "Header.name").setText("Content-Type");
-        contentTypeHeader.addElement("stringProp").addAttribute("name", "Header.value").setText("application/json");
-        
-        // 添加Authorization头
-        org.dom4j.Element authHeader = headers.addElement("elementProp").addAttribute("name", "").addAttribute("elementType", "Header");
-        authHeader.addElement("stringProp").addAttribute("name", "Header.name").setText("Authorization");
-        authHeader.addElement("stringProp").addAttribute("name", "Header.value").setText("${token}");
-        
-        hashTree2.addElement("hashTree");
-        
-        // 添加察看结果树
-        org.dom4j.Element resultCollector = hashTree2.addElement("ResultCollector");
-        resultCollector.addAttribute("guiclass", "ViewResultsFullVisualizer");
-        resultCollector.addAttribute("testclass", "ResultCollector");
-        resultCollector.addAttribute("testname", "察看结果树");
-        resultCollector.addAttribute("enabled", "true");
-        resultCollector.addElement("boolProp").addAttribute("name", "ResultCollector.error_logging").setText("false");
-        
-        org.dom4j.Element saveConfig = resultCollector.addElement("objProp");
-        saveConfig.addElement("name").setText("saveConfig");
-        org.dom4j.Element saveConfigValue = saveConfig.addElement("value").addAttribute("class", "SampleSaveConfiguration");
-        saveConfigValue.addElement("time").setText("true");
-        saveConfigValue.addElement("latency").setText("true");
-        saveConfigValue.addElement("timestamp").setText("true");
-        saveConfigValue.addElement("success").setText("true");
-        saveConfigValue.addElement("label").setText("true");
-        saveConfigValue.addElement("code").setText("true");
-        saveConfigValue.addElement("message").setText("true");
-        saveConfigValue.addElement("threadName").setText("true");
-        saveConfigValue.addElement("dataType").setText("true");
-        saveConfigValue.addElement("encoding").setText("true");
-        saveConfigValue.addElement("assertions").setText("true");
-        saveConfigValue.addElement("subresults").setText("true");
-        saveConfigValue.addElement("responseData").setText("true");
-        saveConfigValue.addElement("samplerData").setText("true");
-        saveConfigValue.addElement("xml").setText("true");
-        saveConfigValue.addElement("fieldNames").setText("true");
-        saveConfigValue.addElement("responseHeaders").setText("true");
-        saveConfigValue.addElement("requestHeaders").setText("true");
-        saveConfigValue.addElement("responseDataOnError").setText("false");
-        saveConfigValue.addElement("saveAssertionResultsFailureMessage").setText("true");
-        saveConfigValue.addElement("assertionsResultsToSave").setText("0");
-        saveConfigValue.addElement("bytes").setText("true");
-        saveConfigValue.addElement("url").setText("true");
-        saveConfigValue.addElement("fileName").setText("true");
-        saveConfigValue.addElement("hostname").setText("true");
-        saveConfigValue.addElement("threadCounts").setText("true");
-        saveConfigValue.addElement("sampleCount").setText("true");
-        saveConfigValue.addElement("idleTime").setText("true");
-        saveConfigValue.addElement("connectTime").setText("true");
-        
-        resultCollector.addElement("stringProp").addAttribute("name", "filename").setText("");
-        
-        hashTree2.addElement("hashTree");
-        
-        // 添加察看结果树(异常)
-        org.dom4j.Element errorResultCollector = hashTree2.addElement("ResultCollector");
-        errorResultCollector.addAttribute("guiclass", "ViewResultsFullVisualizer");
-        errorResultCollector.addAttribute("testclass", "ResultCollector");
-        errorResultCollector.addAttribute("testname", "察看结果树(异常)");
-        errorResultCollector.addAttribute("enabled", "true");
-        errorResultCollector.addElement("boolProp").addAttribute("name", "ResultCollector.error_logging").setText("true");
-        
-        org.dom4j.Element errorSaveConfig = errorResultCollector.addElement("objProp");
-        errorSaveConfig.addElement("name").setText("saveConfig");
-        org.dom4j.Element errorSaveConfigValue = errorSaveConfig.addElement("value").addAttribute("class", "SampleSaveConfiguration");
-        errorSaveConfigValue.addElement("time").setText("true");
-        errorSaveConfigValue.addElement("latency").setText("true");
-        errorSaveConfigValue.addElement("timestamp").setText("true");
-        errorSaveConfigValue.addElement("success").setText("true");
-        errorSaveConfigValue.addElement("label").setText("true");
-        errorSaveConfigValue.addElement("code").setText("true");
-        errorSaveConfigValue.addElement("message").setText("true");
-        errorSaveConfigValue.addElement("threadName").setText("true");
-        errorSaveConfigValue.addElement("dataType").setText("true");
-        errorSaveConfigValue.addElement("encoding").setText("true");
-        errorSaveConfigValue.addElement("assertions").setText("true");
-        errorSaveConfigValue.addElement("subresults").setText("true");
-        errorSaveConfigValue.addElement("responseData").setText("true");
-        errorSaveConfigValue.addElement("samplerData").setText("true");
-        errorSaveConfigValue.addElement("xml").setText("true");
-        errorSaveConfigValue.addElement("fieldNames").setText("true");
-        errorSaveConfigValue.addElement("responseHeaders").setText("true");
-        errorSaveConfigValue.addElement("requestHeaders").setText("true");
-        errorSaveConfigValue.addElement("responseDataOnError").setText("false");
-        errorSaveConfigValue.addElement("saveAssertionResultsFailureMessage").setText("true");
-        errorSaveConfigValue.addElement("assertionsResultsToSave").setText("0");
-        errorSaveConfigValue.addElement("bytes").setText("true");
-        errorSaveConfigValue.addElement("url").setText("true");
-        errorSaveConfigValue.addElement("fileName").setText("true");
-        errorSaveConfigValue.addElement("hostname").setText("true");
-        errorSaveConfigValue.addElement("threadCounts").setText("true");
-        errorSaveConfigValue.addElement("sampleCount").setText("true");
-        errorSaveConfigValue.addElement("idleTime").setText("true");
-        errorSaveConfigValue.addElement("connectTime").setText("true");
-        
-        errorResultCollector.addElement("stringProp").addAttribute("name", "filename").setText("");
-        
-        hashTree2.addElement("hashTree");
-        
-        // 添加用表格察看结果
-        org.dom4j.Element tableResultCollector = hashTree2.addElement("ResultCollector");
-        tableResultCollector.addAttribute("guiclass", "TableVisualizer");
-        tableResultCollector.addAttribute("testclass", "ResultCollector");
-        tableResultCollector.addAttribute("testname", "用表格察看结果");
-        tableResultCollector.addAttribute("enabled", "true");
-        tableResultCollector.addElement("boolProp").addAttribute("name", "ResultCollector.error_logging").setText("false");
-        
-        org.dom4j.Element tableSaveConfig = tableResultCollector.addElement("objProp");
-        tableSaveConfig.addElement("name").setText("saveConfig");
-        org.dom4j.Element tableSaveConfigValue = tableSaveConfig.addElement("value").addAttribute("class", "SampleSaveConfiguration");
-        tableSaveConfigValue.addElement("time").setText("true");
-        tableSaveConfigValue.addElement("latency").setText("false");
-        tableSaveConfigValue.addElement("timestamp").setText("false");
-        tableSaveConfigValue.addElement("success").setText("true");
-        tableSaveConfigValue.addElement("label").setText("false");
-        tableSaveConfigValue.addElement("code").setText("false");
-        tableSaveConfigValue.addElement("message").setText("false");
-        tableSaveConfigValue.addElement("threadName").setText("false");
-        tableSaveConfigValue.addElement("dataType").setText("false");
-        tableSaveConfigValue.addElement("encoding").setText("false");
-        tableSaveConfigValue.addElement("assertions").setText("false");
-        tableSaveConfigValue.addElement("subresults").setText("false");
-        tableSaveConfigValue.addElement("responseData").setText("false");
-        tableSaveConfigValue.addElement("samplerData").setText("false");
-        tableSaveConfigValue.addElement("xml").setText("false");
-        tableSaveConfigValue.addElement("fieldNames").setText("false");
-        tableSaveConfigValue.addElement("responseHeaders").setText("false");
-        tableSaveConfigValue.addElement("requestHeaders").setText("false");
-        tableSaveConfigValue.addElement("responseDataOnError").setText("false");
-        tableSaveConfigValue.addElement("saveAssertionResultsFailureMessage").setText("false");
-        tableSaveConfigValue.addElement("assertionsResultsToSave").setText("0");
-        tableSaveConfigValue.addElement("url").setText("true");
-        tableSaveConfigValue.addElement("threadCounts").setText("true");
-        
-        tableResultCollector.addElement("stringProp").addAttribute("name", "filename").setText("");
-        
-        hashTree2.addElement("hashTree");
-        
-        // 添加聚合报告
-        org.dom4j.Element aggregateResultCollector = hashTree2.addElement("ResultCollector");
-        aggregateResultCollector.addAttribute("guiclass", "StatVisualizer");
-        aggregateResultCollector.addAttribute("testclass", "ResultCollector");
-        aggregateResultCollector.addAttribute("testname", "聚合报告");
-        aggregateResultCollector.addAttribute("enabled", "true");
-        aggregateResultCollector.addElement("boolProp").addAttribute("name", "ResultCollector.error_logging").setText("false");
-        
-        org.dom4j.Element aggregateSaveConfig = aggregateResultCollector.addElement("objProp");
-        aggregateSaveConfig.addElement("name").setText("saveConfig");
-        org.dom4j.Element aggregateSaveConfigValue = aggregateSaveConfig.addElement("value").addAttribute("class", "SampleSaveConfiguration");
-        aggregateSaveConfigValue.addElement("time").setText("true");
-        aggregateSaveConfigValue.addElement("latency").setText("true");
-        aggregateSaveConfigValue.addElement("timestamp").setText("true");
-        aggregateSaveConfigValue.addElement("success").setText("true");
-        aggregateSaveConfigValue.addElement("label").setText("true");
-        aggregateSaveConfigValue.addElement("code").setText("true");
-        aggregateSaveConfigValue.addElement("message").setText("true");
-        aggregateSaveConfigValue.addElement("threadName").setText("true");
-        aggregateSaveConfigValue.addElement("dataType").setText("true");
-        aggregateSaveConfigValue.addElement("encoding").setText("false");
-        aggregateSaveConfigValue.addElement("assertions").setText("true");
-        aggregateSaveConfigValue.addElement("subresults").setText("true");
-        aggregateSaveConfigValue.addElement("responseData").setText("false");
-        aggregateSaveConfigValue.addElement("samplerData").setText("false");
-        aggregateSaveConfigValue.addElement("xml").setText("false");
-        aggregateSaveConfigValue.addElement("fieldNames").setText("false");
-        aggregateSaveConfigValue.addElement("responseHeaders").setText("false");
-        aggregateSaveConfigValue.addElement("requestHeaders").setText("false");
-        aggregateSaveConfigValue.addElement("responseDataOnError").setText("false");
-        aggregateSaveConfigValue.addElement("saveAssertionResultsFailureMessage").setText("false");
-        aggregateSaveConfigValue.addElement("assertionsResultsToSave").setText("0");
-        aggregateSaveConfigValue.addElement("bytes").setText("true");
-        aggregateSaveConfigValue.addElement("threadCounts").setText("true");
-        
-        aggregateResultCollector.addElement("stringProp").addAttribute("name", "filename").setText("");
-        
-        hashTree2.addElement("hashTree");
-        
-        // 添加汇总报告
-        org.dom4j.Element summaryResultCollector = hashTree2.addElement("ResultCollector");
-        summaryResultCollector.addAttribute("guiclass", "SummaryReport");
-        summaryResultCollector.addAttribute("testclass", "ResultCollector");
-        summaryResultCollector.addAttribute("testname", "汇总报告");
-        summaryResultCollector.addAttribute("enabled", "true");
-        summaryResultCollector.addElement("boolProp").addAttribute("name", "ResultCollector.error_logging").setText("false");
-        
-        org.dom4j.Element summarySaveConfig = summaryResultCollector.addElement("objProp");
-        summarySaveConfig.addElement("name").setText("saveConfig");
-        org.dom4j.Element summarySaveConfigValue = summarySaveConfig.addElement("value").addAttribute("class", "SampleSaveConfiguration");
-        summarySaveConfigValue.addElement("time").setText("true");
-        summarySaveConfigValue.addElement("latency").setText("true");
-        summarySaveConfigValue.addElement("timestamp").setText("true");
-        summarySaveConfigValue.addElement("success").setText("true");
-        summarySaveConfigValue.addElement("label").setText("true");
-        summarySaveConfigValue.addElement("code").setText("true");
-        summarySaveConfigValue.addElement("message").setText("true");
-        summarySaveConfigValue.addElement("threadName").setText("true");
-        summarySaveConfigValue.addElement("dataType").setText("true");
-        summarySaveConfigValue.addElement("encoding").setText("false");
-        summarySaveConfigValue.addElement("assertions").setText("true");
-        summarySaveConfigValue.addElement("subresults").setText("true");
-        summarySaveConfigValue.addElement("responseData").setText("false");
-        summarySaveConfigValue.addElement("samplerData").setText("false");
-        summarySaveConfigValue.addElement("xml").setText("false");
-        summarySaveConfigValue.addElement("fieldNames").setText("true");
-        summarySaveConfigValue.addElement("responseHeaders").setText("false");
-        summarySaveConfigValue.addElement("requestHeaders").setText("false");
-        summarySaveConfigValue.addElement("responseDataOnError").setText("false");
-        summarySaveConfigValue.addElement("saveAssertionResultsFailureMessage").setText("true");
-        summarySaveConfigValue.addElement("assertionsResultsToSave").setText("0");
-        summarySaveConfigValue.addElement("bytes").setText("true");
-        summarySaveConfigValue.addElement("sentBytes").setText("true");
-        summarySaveConfigValue.addElement("url").setText("true");
-        summarySaveConfigValue.addElement("threadCounts").setText("true");
-        summarySaveConfigValue.addElement("idleTime").setText("true");
-        summarySaveConfigValue.addElement("connectTime").setText("true");
-        
-        summaryResultCollector.addElement("stringProp").addAttribute("name", "filename").setText("");
-        
-        hashTree2.addElement("hashTree");
-        
-        // 添加ThreadGroup
-        org.dom4j.Element threadGroup = hashTree2.addElement("ThreadGroup");
-        threadGroup.addAttribute("guiclass", "ThreadGroupGui");
-        threadGroup.addAttribute("testclass", "ThreadGroup");
-        threadGroup.addAttribute("testname", "线程组");
-        threadGroup.addAttribute("enabled", "true");
-        
-        threadGroup.addElement("stringProp").addAttribute("name", "ThreadGroup.on_sample_error").setText("continue");
-        
-        // 添加main_controller
-        org.dom4j.Element mainController = threadGroup.addElement("elementProp").addAttribute("name", "ThreadGroup.main_controller").addAttribute("elementType", "LoopController").addAttribute("guiclass", "LoopControlPanel").addAttribute("testclass", "LoopController").addAttribute("testname", "循环控制器").addAttribute("enabled", "true");
-        mainController.addElement("stringProp").addAttribute("name", "LoopController.loops").setText("1");
-        mainController.addElement("boolProp").addAttribute("name", "LoopController.continue_forever").setText("false");
-        
-        threadGroup.addElement("stringProp").addAttribute("name", "ThreadGroup.num_threads").setText("10");
-        threadGroup.addElement("stringProp").addAttribute("name", "ThreadGroup.ramp_time").setText("1");
-        threadGroup.addElement("longProp").addAttribute("name", "ThreadGroup.start_time").setText("1419768021000");
-        threadGroup.addElement("longProp").addAttribute("name", "ThreadGroup.end_time").setText("1419768621000");
-        threadGroup.addElement("boolProp").addAttribute("name", "ThreadGroup.scheduler").setText("false");
-        threadGroup.addElement("stringProp").addAttribute("name", "ThreadGroup.duration").setText("600");
-        threadGroup.addElement("stringProp").addAttribute("name", "ThreadGroup.delay").setText("");
-        threadGroup.addElement("boolProp").addAttribute("name", "ThreadGroup.same_user_on_next_iteration").setText("true");
-        threadGroup.addElement("boolProp").addAttribute("name", "ThreadGroup.delayedStart").setText("false");
-        
-        // 添加ThreadGroup的hashTree
-        org.dom4j.Element threadGroupHashTree = hashTree2.addElement("hashTree");
-        
-        // 添加高斯随机定时器
-        org.dom4j.Element gaussianTimer = threadGroupHashTree.addElement("GaussianRandomTimer");
-        gaussianTimer.addAttribute("guiclass", "GaussianRandomTimerGui");
-        gaussianTimer.addAttribute("testclass", "GaussianRandomTimer");
-        gaussianTimer.addAttribute("testname", "高斯随机定时器");
-        gaussianTimer.addAttribute("enabled", "true");
-        gaussianTimer.addElement("stringProp").addAttribute("name", "ConstantTimer.delay").setText("10");
-        gaussianTimer.addElement("stringProp").addAttribute("name", "RandomTimer.range").setText("0.0");
-        
-        threadGroupHashTree.addElement("hashTree");
+        // 填充ThreadGroup内容
+        Element threadGroup = elementBean.findElement(JMeterElementBean.TYPE_THREAD_GROUP, JMeterElementBean.NAME_THREAD_GROUP);
+        if (threadGroup != null) {
+            threadGroup.addElement("stringProp").addAttribute("name", "ThreadGroup.num_threads").setText("20");
+            threadGroup.addElement("stringProp").addAttribute("name", "ThreadGroup.ramp_time").setText("2");
+            threadGroup.addElement("stringProp").addAttribute("name", "ThreadGroup.duration").setText("600");
+            threadGroup.addElement("stringProp").addAttribute("name", "ThreadGroup.delay").setText("1");
+            threadGroup.addElement("boolProp").addAttribute("name", "ThreadGroup.same_user_on_next_iteration").setText("false");
+            threadGroup.addElement("stringProp").addAttribute("name", "ThreadGroup.on_sample_error").setText("continue");
+            
+            // 添加main_controller
+            org.dom4j.Element mainController = threadGroup.addElement("elementProp").addAttribute("name", "ThreadGroup.main_controller").addAttribute("elementType", "LoopController").addAttribute("guiclass", "LoopControlPanel").addAttribute("testclass", "LoopController").addAttribute("testname", "循环控制器").addAttribute("enabled", "true");
+            mainController.addElement("stringProp").addAttribute("name", "LoopController.loops").setText("1");
+            mainController.addElement("boolProp").addAttribute("name", "LoopController.continue_forever").setText("false");
+            
+            threadGroup.addElement("boolProp").addAttribute("name", "ThreadGroup.delayedStart").setText("false");
+            threadGroup.addElement("boolProp").addAttribute("name", "ThreadGroup.scheduler").setText("false");
+            
+            // 获取ThreadGroup的hashTree
+            Element threadGroupHashTree = elementBean.findElement(JMeterElementBean.TYPE_HASH_TREE, JMeterElementBean.NAME_THREAD_GROUP + "-hashTree");
+            if (threadGroupHashTree != null) {
+                // 添加高斯随机定时器
+                org.dom4j.Element gaussianTimer = threadGroupHashTree.addElement("GaussianRandomTimer");
+                gaussianTimer.addAttribute("guiclass", "GaussianRandomTimerGui");
+                gaussianTimer.addAttribute("testclass", "GaussianRandomTimer");
+                gaussianTimer.addAttribute("testname", "高斯随机定时器");
+                gaussianTimer.addAttribute("enabled", "true");
+                gaussianTimer.addElement("stringProp").addAttribute("name", "ConstantTimer.delay").setText("10");
+                gaussianTimer.addElement("stringProp").addAttribute("name", "RandomTimer.range").setText("0.0");
+                
+                threadGroupHashTree.addElement("hashTree");
+            }
+        }
         
         return document;
     }
@@ -384,6 +182,7 @@ public class JMeterWriter {
             }
         }
 
+        //添加 dev-tiger
         if (testPlanHashTree != null) {
             // 检查并添加缺失的固定用户参数表
             checkAndAddFixedUserParameters(testPlanHashTree, swaggerModel);
@@ -778,7 +577,7 @@ public class JMeterWriter {
     }
 
     /**
-     * 检查并添加缺失的固定用户参数表
+     * 检查并添加缺失的固定用户参数表（根据API信息动态生成）
      */
     private void checkAndAddFixedUserParameters(Element testPlanHashTree, SwaggerModel swaggerModel) {
         // 从Swagger文档中获取服务器URL
@@ -812,381 +611,117 @@ public class JMeterWriter {
             }
         }
         
-        // 检查是否存在"固定用户-dev"参数表
-        boolean hasDevParams = false;
-        // 检查是否存在"固定用户 【tiger-api】"参数表
-        boolean hasProdParams = false;
-        
+        // 精准查找元素并填充参数
         List<Element> children = testPlanHashTree.elements();
+        
+        // 1. 填充固定用户-dev参数表
         for (Element child : children) {
-            if (child.getName().equals("Arguments")) {
-                String testname = child.attributeValue("testname");
-                if ("固定用户-dev".equals(testname)) {
-                    hasDevParams = true;
-                } else if ("固定用户 【tiger-api】".equals(testname)) {
-                    hasProdParams = true;
-                }
-            }
-        }
-        
-        // 如果不存在"固定用户-dev"参数表，添加一个
-        if (!hasDevParams) {
-            org.dom4j.Element argumentsDev = testPlanHashTree.addElement("Arguments");
-            argumentsDev.addAttribute("guiclass", "ArgumentsPanel");
-            argumentsDev.addAttribute("testclass", "Arguments");
-            argumentsDev.addAttribute("testname", "固定用户-dev");
-            argumentsDev.addAttribute("enabled", "false");
-            org.dom4j.Element argsCollectionDev = argumentsDev.addElement("collectionProp").addAttribute("name", "Arguments.arguments");
-            
-            // 添加tcp_sleep_time参数
-            org.dom4j.Element tcpSleepArgDev = argsCollectionDev.addElement("elementProp").addAttribute("name", "tcp_sleep_time").addAttribute("elementType", "Argument");
-            tcpSleepArgDev.addElement("stringProp").addAttribute("name", "Argument.name").setText("tcp_sleep_time");
-            tcpSleepArgDev.addElement("stringProp").addAttribute("name", "Argument.value").setText("1000");
-            tcpSleepArgDev.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            tcpSleepArgDev.addElement("stringProp").addAttribute("name", "Argument.desc").setText("socket发送请求间隔毫秒数");
-            
-            // 添加------A用户--------
-            org.dom4j.Element aUserArgDev = argsCollectionDev.addElement("elementProp").addAttribute("name", "------A用户--------").addAttribute("elementType", "Argument");
-            aUserArgDev.addElement("stringProp").addAttribute("name", "Argument.name").setText("------A用户--------");
-            aUserArgDev.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加code参数
-            org.dom4j.Element codeArgDev = argsCollectionDev.addElement("elementProp").addAttribute("name", "code").addAttribute("elementType", "Argument");
-            codeArgDev.addElement("stringProp").addAttribute("name", "Argument.name").setText("code");
-            codeArgDev.addElement("stringProp").addAttribute("name", "Argument.value").setText("041Yo5nl2EKlZg4of5ml2KGUXR1Yo5nV");
-            codeArgDev.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加------B用户--------
-            org.dom4j.Element bUserArgDev = argsCollectionDev.addElement("elementProp").addAttribute("name", "------B用户--------").addAttribute("elementType", "Argument");
-            bUserArgDev.addElement("stringProp").addAttribute("name", "Argument.name").setText("------B用户--------");
-            bUserArgDev.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加b_code参数
-            org.dom4j.Element bCodeArgDev = argsCollectionDev.addElement("elementProp").addAttribute("name", "b_code").addAttribute("elementType", "Argument");
-            bCodeArgDev.addElement("stringProp").addAttribute("name", "Argument.name").setText("b_code");
-            bCodeArgDev.addElement("stringProp").addAttribute("name", "Argument.value").setText("071pT7000XqaIV1kLd1003hu8O0pT709");
-            bCodeArgDev.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加serverIP参数
-            org.dom4j.Element serverIpArgDev = argsCollectionDev.addElement("elementProp").addAttribute("name", "serverIP").addAttribute("elementType", "Argument");
-            serverIpArgDev.addElement("stringProp").addAttribute("name", "Argument.name").setText("serverIP");
-            serverIpArgDev.addElement("stringProp").addAttribute("name", "Argument.value").setText("localhost");
-            serverIpArgDev.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加serverPort参数
-            org.dom4j.Element serverPortArgDev = argsCollectionDev.addElement("elementProp").addAttribute("name", "serverPort").addAttribute("elementType", "Argument");
-            serverPortArgDev.addElement("stringProp").addAttribute("name", "Argument.name").setText("serverPort");
-            serverPortArgDev.addElement("stringProp").addAttribute("name", "Argument.value").setText("8080");
-            serverPortArgDev.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加protocol参数
-            org.dom4j.Element protocolArgDev = argsCollectionDev.addElement("elementProp").addAttribute("name", "protocol").addAttribute("elementType", "Argument");
-            protocolArgDev.addElement("stringProp").addAttribute("name", "Argument.name").setText("protocol");
-            protocolArgDev.addElement("stringProp").addAttribute("name", "Argument.value").setText("http");
-            protocolArgDev.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加token参数
-            org.dom4j.Element tokenArgDev = argsCollectionDev.addElement("elementProp").addAttribute("name", "token").addAttribute("elementType", "Argument");
-            tokenArgDev.addElement("stringProp").addAttribute("name", "Argument.name").setText("token");
-            tokenArgDev.addElement("stringProp").addAttribute("name", "Argument.value").setText("");
-            tokenArgDev.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            testPlanHashTree.addElement("hashTree");
-        }
-        
-        // 如果存在"固定用户 【tiger-api】"参数表，先删除它
-        List<Element> elementsToRemove = new ArrayList<>();
-        List<Element> hashTreesToRemove = new ArrayList<>();
-        
-        children = testPlanHashTree.elements();
-        for (int i = 0; i < children.size(); i++) {
-            Element child = children.get(i);
-            if (child.getName().equals("Arguments") && "固定用户 【tiger-api】".equals(child.attributeValue("testname"))) {
-                elementsToRemove.add(child);
-                // 检查下一个元素是否是hashTree，如果是，也删除
-                if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                    hashTreesToRemove.add(children.get(i + 1));
-                }
-            }
-        }
-        
-        // 删除找到的元素
-        for (Element element : elementsToRemove) {
-            testPlanHashTree.remove(element);
-        }
-        for (Element element : hashTreesToRemove) {
-            testPlanHashTree.remove(element);
-        }
-        
-        // 重新获取子元素列表
-        children = testPlanHashTree.elements();
-        
-        // 找到"固定用户-dev"的位置
-        int devParamsIndex = -1;
-        for (int i = 0; i < children.size(); i++) {
-            Element child = children.get(i);
-            if (child.getName().equals("Arguments") && "固定用户-dev".equals(child.attributeValue("testname"))) {
-                devParamsIndex = i;
+            if (child.getName().equals("Arguments") && JMeterElementBean.NAME_FIXED_USER_DEV.equals(child.attributeValue("testname"))) {
+                fillArgumentsElement(child, "localhost", "8080", "http", "041Yo5nl2EKlZg4of5ml2KGUXR1Yo5nV", "071pT7000XqaIV1kLd1003hu8O0pT709", "");
                 break;
             }
         }
         
-        // 重新排序元素，确保TestPlan元素在最前面，然后是"HTTP信息头-固定"，然后是固定用户参数表，"察看结果树"在下面
-        children = testPlanHashTree.elements();
-        List<Element> testPlanElements = new ArrayList<>();
-        List<Element> headerElements = new ArrayList<>();
-        List<Element> fixedUserElements = new ArrayList<>();
-        List<Element> viewResultsTreeElements = new ArrayList<>();
-        List<Element> otherElements = new ArrayList<>();
-        
-        // 收集元素
-        for (int i = 0; i < children.size(); i++) {
-            Element child = children.get(i);
-            if (child.getName().equals("TestPlan")) {
-                testPlanElements.add(child);
-                // 检查下一个元素是否是hashTree
-                if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                    testPlanElements.add(children.get(i + 1));
-                    i++;
-                }
-            } else if (child.getName().equals("HeaderManager") && "HTTP信息头-固定".equals(child.attributeValue("testname"))) {
-                headerElements.add(child);
-                // 检查下一个元素是否是hashTree
-                if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                    headerElements.add(children.get(i + 1));
-                    i++;
-                }
-            } else if (child.getName().equals("Arguments") && ("固定用户-dev".equals(child.attributeValue("testname")) || "固定用户 【tiger-api】".equals(child.attributeValue("testname")))) {
-                fixedUserElements.add(child);
-                // 检查下一个元素是否是hashTree
-                if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                    fixedUserElements.add(children.get(i + 1));
-                    i++;
-                }
-            } else if (child.getName().equals("ResultCollector") && "察看结果树".equals(child.attributeValue("testname"))) {
-                viewResultsTreeElements.add(child);
-                // 检查下一个元素是否是hashTree
-                if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                    viewResultsTreeElements.add(children.get(i + 1));
-                    i++;
-                }
-            } else {
-                otherElements.add(child);
-                // 检查下一个元素是否是hashTree
-                if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                    otherElements.add(children.get(i + 1));
-                    i++;
-                }
+        // 2. 填充固定用户 【tiger-api】参数表
+        for (Element child : children) {
+            if (child.getName().equals("Arguments") && JMeterElementBean.NAME_FIXED_USER_TIGER.equals(child.attributeValue("testname"))) {
+                fillArgumentsElement(child, serverIP, serverPort, protocol, "041Yo5nl2EKlZg4of5ml2KGUXR1Yo5nV", "071pT7000XqaIV1kLd1003hu8O0pT709", "");
+                break;
             }
         }
         
-        // 清空原有元素
-        testPlanHashTree.clearContent();
-        
-        // 先添加TestPlan元素
-        for (Element element : testPlanElements) {
-            element.detach(); // 先从原有父元素中分离
-            testPlanHashTree.add(element);
-        }
-        
-        // 然后添加HTTP信息头-固定元素
-        for (Element element : headerElements) {
-            element.detach(); // 先从原有父元素中分离
-            testPlanHashTree.add(element);
-        }
-        
-        // 然后添加固定用户元素
-        for (Element element : fixedUserElements) {
-            element.detach(); // 先从原有父元素中分离
-            testPlanHashTree.add(element);
-        }
-        
-        // 然后添加其他元素
-        for (Element element : otherElements) {
-            element.detach(); // 先从原有父元素中分离
-            testPlanHashTree.add(element);
-        }
-        
-        // 最后添加察看结果树元素
-        for (Element element : viewResultsTreeElements) {
-            element.detach(); // 先从原有父元素中分离
-            testPlanHashTree.add(element);
-        }
-        
-        // 在"固定用户-dev"后面添加"固定用户 【tiger-api】"参数表
-        if (devParamsIndex != -1) {
-            // 创建"固定用户 【tiger-api】"参数表
-            org.dom4j.Element argumentsProd = testPlanHashTree.addElement("Arguments");
-            argumentsProd.addAttribute("guiclass", "ArgumentsPanel");
-            argumentsProd.addAttribute("testclass", "Arguments");
-            argumentsProd.addAttribute("testname", "固定用户 【tiger-api】");
-            argumentsProd.addAttribute("enabled", "true");
-            org.dom4j.Element argsCollectionProd = argumentsProd.addElement("collectionProp").addAttribute("name", "Arguments.arguments");
-            
-            // 添加tcp_sleep_time参数
-            org.dom4j.Element tcpSleepArgProd = argsCollectionProd.addElement("elementProp").addAttribute("name", "tcp_sleep_time").addAttribute("elementType", "Argument");
-            tcpSleepArgProd.addElement("stringProp").addAttribute("name", "Argument.name").setText("tcp_sleep_time");
-            tcpSleepArgProd.addElement("stringProp").addAttribute("name", "Argument.value").setText("1000");
-            tcpSleepArgProd.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            tcpSleepArgProd.addElement("stringProp").addAttribute("name", "Argument.desc").setText("socket发送请求间隔毫秒数");
-            
-            // 添加------A用户--------
-            org.dom4j.Element aUserArgProd = argsCollectionProd.addElement("elementProp").addAttribute("name", "------A用户--------").addAttribute("elementType", "Argument");
-            aUserArgProd.addElement("stringProp").addAttribute("name", "Argument.name").setText("------A用户--------");
-            aUserArgProd.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加code参数
-            org.dom4j.Element codeArgProd = argsCollectionProd.addElement("elementProp").addAttribute("name", "code").addAttribute("elementType", "Argument");
-            codeArgProd.addElement("stringProp").addAttribute("name", "Argument.name").setText("code");
-            codeArgProd.addElement("stringProp").addAttribute("name", "Argument.value").setText("041Yo5nl2EKlZg4of5ml2KGUXR1Yo5nV");
-            codeArgProd.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加------B用户--------
-            org.dom4j.Element bUserArgProd = argsCollectionProd.addElement("elementProp").addAttribute("name", "------B用户--------").addAttribute("elementType", "Argument");
-            bUserArgProd.addElement("stringProp").addAttribute("name", "Argument.name").setText("------B用户--------");
-            bUserArgProd.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加b_code参数
-            org.dom4j.Element bCodeArgProd = argsCollectionProd.addElement("elementProp").addAttribute("name", "b_code").addAttribute("elementType", "Argument");
-            bCodeArgProd.addElement("stringProp").addAttribute("name", "Argument.name").setText("b_code");
-            bCodeArgProd.addElement("stringProp").addAttribute("name", "Argument.value").setText("071pT7000XqaIV1kLd1003hu8O0pT709");
-            bCodeArgProd.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加serverIP参数
-            org.dom4j.Element serverIpArgProd = argsCollectionProd.addElement("elementProp").addAttribute("name", "serverIP").addAttribute("elementType", "Argument");
-            serverIpArgProd.addElement("stringProp").addAttribute("name", "Argument.name").setText("serverIP");
-            serverIpArgProd.addElement("stringProp").addAttribute("name", "Argument.value").setText(serverIP);
-            serverIpArgProd.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加serverPort参数
-            org.dom4j.Element serverPortArgProd = argsCollectionProd.addElement("elementProp").addAttribute("name", "serverPort").addAttribute("elementType", "Argument");
-            serverPortArgProd.addElement("stringProp").addAttribute("name", "Argument.name").setText("serverPort");
-            serverPortArgProd.addElement("stringProp").addAttribute("name", "Argument.value").setText(serverPort);
-            serverPortArgProd.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加protocol参数
-            org.dom4j.Element protocolArgProd = argsCollectionProd.addElement("elementProp").addAttribute("name", "protocol").addAttribute("elementType", "Argument");
-            protocolArgProd.addElement("stringProp").addAttribute("name", "Argument.name").setText("protocol");
-            protocolArgProd.addElement("stringProp").addAttribute("name", "Argument.value").setText(protocol);
-            protocolArgProd.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            // 添加token参数
-            org.dom4j.Element tokenArgProd = argsCollectionProd.addElement("elementProp").addAttribute("name", "token").addAttribute("elementType", "Argument");
-            tokenArgProd.addElement("stringProp").addAttribute("name", "Argument.name").setText("token");
-            tokenArgProd.addElement("stringProp").addAttribute("name", "Argument.value").setText("");
-            tokenArgProd.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
-            
-            testPlanHashTree.addElement("hashTree");
-            
-            // 再次重新排序元素，确保"固定用户 【tiger-api】"在"固定用户-dev"后面，"察看结果树"前面
-            children = testPlanHashTree.elements();
-            List<Element> testPlanElementsProd = new ArrayList<>();
-            List<Element> headerElementsProd = new ArrayList<>();
-            fixedUserElements = new ArrayList<>();
-            viewResultsTreeElements = new ArrayList<>();
-            otherElements = new ArrayList<>();
-            
-            // 收集元素
-            for (int i = 0; i < children.size(); i++) {
-                Element child = children.get(i);
-                if (child.getName().equals("TestPlan")) {
-                    testPlanElementsProd.add(child);
-                    // 检查下一个元素是否是hashTree
-                    if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                        testPlanElementsProd.add(children.get(i + 1));
-                        i++;
-                    }
-                } else if (child.getName().equals("HeaderManager") && "HTTP信息头-固定".equals(child.attributeValue("testname"))) {
-                    headerElementsProd.add(child);
-                    // 检查下一个元素是否是hashTree
-                    if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                        headerElementsProd.add(children.get(i + 1));
-                        i++;
-                    }
-                } else if (child.getName().equals("Arguments") && "固定用户-dev".equals(child.attributeValue("testname"))) {
-                    fixedUserElements.add(child);
-                    // 检查下一个元素是否是hashTree
-                    if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                        fixedUserElements.add(children.get(i + 1));
-                        i++;
-                    }
-                } else if (child.getName().equals("Arguments") && "固定用户 【tiger-api】".equals(child.attributeValue("testname"))) {
-                    // 跳过，稍后添加
-                } else if (child.getName().equals("ResultCollector") && "察看结果树".equals(child.attributeValue("testname"))) {
-                    viewResultsTreeElements.add(child);
-                    // 检查下一个元素是否是hashTree
-                    if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                        viewResultsTreeElements.add(children.get(i + 1));
-                        i++;
-                    }
-                } else {
-                    otherElements.add(child);
-                    // 检查下一个元素是否是hashTree
-                    if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                        otherElements.add(children.get(i + 1));
-                        i++;
-                    }
-                }
-            }
-            
-            // 找到新添加的"固定用户 【tiger-api】"元素
-            Element prodArguments = null;
-            Element prodHashTree = null;
-            for (int i = 0; i < children.size(); i++) {
-                Element child = children.get(i);
-                if (child.getName().equals("Arguments") && "固定用户 【tiger-api】".equals(child.attributeValue("testname"))) {
-                    prodArguments = child;
-                    // 检查下一个元素是否是hashTree
-                    if (i + 1 < children.size() && children.get(i + 1).getName().equals("hashTree")) {
-                        prodHashTree = children.get(i + 1);
-                        break;
-                    }
-                }
-            }
-            
-            // 清空原有元素
-            testPlanHashTree.clearContent();
-            
-            // 先添加TestPlan元素
-            for (Element element : testPlanElementsProd) {
-                element.detach(); // 先从原有父元素中分离
-                testPlanHashTree.add(element);
-            }
-            
-            // 然后添加HTTP信息头-固定元素
-            for (Element element : headerElementsProd) {
-                element.detach(); // 先从原有父元素中分离
-                testPlanHashTree.add(element);
-            }
-            
-            // 然后添加"固定用户-dev"元素
-            for (Element element : fixedUserElements) {
-                element.detach(); // 先从原有父元素中分离
-                testPlanHashTree.add(element);
-            }
-            
-            // 然后添加"固定用户 【tiger-api】"元素
-            if (prodArguments != null) {
-                prodArguments.detach(); // 先从原有父元素中分离
-                testPlanHashTree.add(prodArguments);
-                if (prodHashTree != null) {
-                    prodHashTree.detach(); // 先从原有父元素中分离
-                    testPlanHashTree.add(prodHashTree);
-                }
-            }
-            
-            // 然后添加其他元素
-            for (Element element : otherElements) {
-                element.detach(); // 先从原有父元素中分离
-                testPlanHashTree.add(element);
-            }
-            
-            // 最后添加察看结果树元素
-            for (Element element : viewResultsTreeElements) {
-                element.detach(); // 先从原有父元素中分离
-                testPlanHashTree.add(element);
+        // 3. 填充固定用户 【product】参数表
+        for (Element child : children) {
+            if (child.getName().equals("Arguments") && JMeterElementBean.NAME_FIXED_USER_PRODUCT.equals(child.attributeValue("testname"))) {
+                fillArgumentsElement(child, "yunying.guoyunwenlv.com", "8080", "https", "041Yo5nl2EKlZg4of5ml2KGUXR1Yo5nV", "071pT7000XqaIV1kLd1003hu8O0pT709", "");
+                break;
             }
         }
+    }
+    
+    /**
+     * 填充Arguments元素的内容
+     */
+    private void fillArgumentsElement(Element arguments, String serverIP, String serverPort, String protocol, String code, String bCode, String token) {
+        // 检查是否已经有collectionProp
+        Element collectionProp = null;
+        for (Element child : arguments.elements()) {
+            if (child.getName().equals("collectionProp") && "Arguments.arguments".equals(child.attributeValue("name"))) {
+                collectionProp = child;
+                break;
+            }
+        }
+        
+        // 如果没有collectionProp，创建一个
+        if (collectionProp == null) {
+            collectionProp = arguments.addElement("collectionProp").addAttribute("name", "Arguments.arguments");
+        }
+        
+        // 检查是否已经有参数，如果有则跳过
+        boolean hasParams = false;
+        for (Element child : collectionProp.elements()) {
+            if (child.getName().equals("elementProp")) {
+                hasParams = true;
+                break;
+            }
+        }
+        
+        if (hasParams) {
+            return;
+        }
+        
+        // 添加tcp_sleep_time参数
+        Element tcpSleepArg = collectionProp.addElement("elementProp").addAttribute("name", "tcp_sleep_time").addAttribute("elementType", "Argument");
+        tcpSleepArg.addElement("stringProp").addAttribute("name", "Argument.name").setText("tcp_sleep_time");
+        tcpSleepArg.addElement("stringProp").addAttribute("name", "Argument.value").setText("1000");
+        tcpSleepArg.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
+        tcpSleepArg.addElement("stringProp").addAttribute("name", "Argument.desc").setText("socket发送请求间隔毫秒数");
+        
+        // 添加------A用户--------
+        Element aUserArg = collectionProp.addElement("elementProp").addAttribute("name", "------A用户--------").addAttribute("elementType", "Argument");
+        aUserArg.addElement("stringProp").addAttribute("name", "Argument.name").setText("------A用户--------");
+        aUserArg.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
+        
+        // 添加code参数
+        Element codeArg = collectionProp.addElement("elementProp").addAttribute("name", "code").addAttribute("elementType", "Argument");
+        codeArg.addElement("stringProp").addAttribute("name", "Argument.name").setText("code");
+        codeArg.addElement("stringProp").addAttribute("name", "Argument.value").setText(code);
+        codeArg.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
+        
+        // 添加------B用户--------
+        Element bUserArg = collectionProp.addElement("elementProp").addAttribute("name", "------B用户--------").addAttribute("elementType", "Argument");
+        bUserArg.addElement("stringProp").addAttribute("name", "Argument.name").setText("------B用户--------");
+        bUserArg.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
+        
+        // 添加b_code参数
+        Element bCodeArg = collectionProp.addElement("elementProp").addAttribute("name", "b_code").addAttribute("elementType", "Argument");
+        bCodeArg.addElement("stringProp").addAttribute("name", "Argument.name").setText("b_code");
+        bCodeArg.addElement("stringProp").addAttribute("name", "Argument.value").setText(bCode);
+        bCodeArg.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
+        
+        // 添加serverIP参数
+        Element serverIpArg = collectionProp.addElement("elementProp").addAttribute("name", "serverIP").addAttribute("elementType", "Argument");
+        serverIpArg.addElement("stringProp").addAttribute("name", "Argument.name").setText("serverIP");
+        serverIpArg.addElement("stringProp").addAttribute("name", "Argument.value").setText(serverIP);
+        serverIpArg.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
+        
+        // 添加protocol参数
+        Element protocolArg = collectionProp.addElement("elementProp").addAttribute("name", "protocol").addAttribute("elementType", "Argument");
+        protocolArg.addElement("stringProp").addAttribute("name", "Argument.name").setText("protocol");
+        protocolArg.addElement("stringProp").addAttribute("name", "Argument.value").setText(protocol);
+        protocolArg.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
+        
+        // 添加serverPort参数
+        Element serverPortArg = collectionProp.addElement("elementProp").addAttribute("name", "serverPort").addAttribute("elementType", "Argument");
+        serverPortArg.addElement("stringProp").addAttribute("name", "Argument.name").setText("serverPort");
+        serverPortArg.addElement("stringProp").addAttribute("name", "Argument.value").setText(serverPort);
+        serverPortArg.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
+        
+        // 添加token参数
+        Element tokenArg = collectionProp.addElement("elementProp").addAttribute("name", "token").addAttribute("elementType", "Argument");
+        tokenArg.addElement("stringProp").addAttribute("name", "Argument.name").setText("token");
+        tokenArg.addElement("stringProp").addAttribute("name", "Argument.value").setText(token);
+        tokenArg.addElement("stringProp").addAttribute("name", "Argument.metadata").setText("=");
     }
 
     /**
