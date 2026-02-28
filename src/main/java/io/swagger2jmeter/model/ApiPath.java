@@ -1,11 +1,8 @@
-package com.tools.yajie;
+package io.swagger2jmeter.model;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Swagger/OpenAPI文档中的API路径模型
- */
 public class ApiPath {
 
     private String path;

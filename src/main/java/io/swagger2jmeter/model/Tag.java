@@ -1,8 +1,5 @@
-package com.tools.yajie;
+package io.swagger2jmeter.model;
 
-/**
- * Swagger/OpenAPI文档中的标签模型
- */
 public class Tag {
 
     private String name;

@@ -1,7 +1,8 @@
-package com.tools.yajie;
+package io.swagger2jmeter.parser;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger2jmeter.model.*;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -18,21 +19,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-/**
- * Swagger/OpenAPI文档解析器
- * 功能：
- * 1. 从URL或本地文件解析Swagger文档
- * 2. 提取tags信息
- * 3. 提取paths信息
- * 4. 提取API参数信息
- */
 public class SwaggerParser {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final OkHttpClient httpClient;
 
     static {
-        // 创建忽略SSL证书验证的OkHttpClient
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         builder.sslSocketFactory(getSSLSocketFactory(), getTrustManager());
         builder.hostnameVerifier((hostname, session) -> true);
@@ -64,9 +56,6 @@ public class SwaggerParser {
         };
     }
 
-    /**
-     * 从URL解析Swagger文档
-     */
     public SwaggerModel parseFromUrl(String url) throws IOException {
         Request request = new Request.Builder()
                 .url(url)
@@ -82,30 +71,20 @@ public class SwaggerParser {
         }
     }
 
-    /**
-     * 从本地文件解析Swagger文档
-     */
     public SwaggerModel parseFromFile(String filePath) throws IOException {
         File file = new File(filePath);
         JsonNode rootNode = objectMapper.readTree(file);
         return parseFromJsonNode(rootNode);
     }
 
-    /**
-     * 从JSON字符串解析Swagger文档
-     */
     public SwaggerModel parseFromJson(String json) throws IOException {
         JsonNode rootNode = objectMapper.readTree(json);
         return parseFromJsonNode(rootNode);
     }
 
-    /**
-     * 从JsonNode解析Swagger文档
-     */
     private SwaggerModel parseFromJsonNode(JsonNode rootNode) {
         SwaggerModel model = new SwaggerModel();
 
-        // 提取servers信息
         if (rootNode.has("servers")) {
             JsonNode serversNode = rootNode.get("servers");
             if (serversNode.isArray() && serversNode.size() > 0) {
@@ -117,7 +96,6 @@ public class SwaggerParser {
             }
         }
 
-        // 提取info.contact.name信息
         if (rootNode.has("info")) {
             JsonNode infoNode = rootNode.get("info");
             if (infoNode.has("contact")) {
@@ -129,7 +107,6 @@ public class SwaggerParser {
             }
         }
 
-        // 提取components.schemas信息
         Map<String, JsonNode> schemas = new HashMap<>();
         if (rootNode.has("components")) {
             JsonNode componentsNode = rootNode.get("components");
@@ -143,7 +120,6 @@ public class SwaggerParser {
             }
         }
 
-        // 提取tags信息
         if (rootNode.has("tags")) {
             JsonNode tagsNode = rootNode.get("tags");
             for (JsonNode tagNode : tagsNode) {
@@ -155,7 +131,6 @@ public class SwaggerParser {
             }
         }
 
-        // 提取paths信息
         if (rootNode.has("paths")) {
             JsonNode pathsNode = rootNode.get("paths");
             Iterator<Map.Entry<String, JsonNode>> pathEntries = pathsNode.fields();
@@ -165,29 +140,24 @@ public class SwaggerParser {
                 String path = pathEntry.getKey();
                 JsonNode pathNode = pathEntry.getValue();
 
-                // 提取每个HTTP方法的信息
                 Iterator<Map.Entry<String, JsonNode>> methodEntries = pathNode.fields();
                 while (methodEntries.hasNext()) {
                     Map.Entry<String, JsonNode> methodEntry = methodEntries.next();
                     String method = methodEntry.getKey();
                     JsonNode operationNode = methodEntry.getValue();
 
-                    // 提取API信息
                     ApiPath apiPath = new ApiPath();
                     apiPath.setPath(path);
                     apiPath.setMethod(method.toUpperCase());
 
-                    // 提取summary
                     if (operationNode.has("summary")) {
                         apiPath.setSummary(operationNode.get("summary").asText());
                     }
 
-                    // 提取description
                     if (operationNode.has("description")) {
                         apiPath.setDescription(operationNode.get("description").asText());
                     }
 
-                    // 提取tags
                     if (operationNode.has("tags")) {
                         JsonNode tagsNode = operationNode.get("tags");
                         for (JsonNode tagNode : tagsNode) {
@@ -195,7 +165,6 @@ public class SwaggerParser {
                         }
                     }
 
-                    // 提取parameters
                     if (operationNode.has("parameters")) {
                         JsonNode parametersNode = operationNode.get("parameters");
                         for (JsonNode paramNode : parametersNode) {
@@ -222,7 +191,6 @@ public class SwaggerParser {
                         }
                     }
 
-                    // 提取requestBody
                     if (operationNode.has("requestBody")) {
                         JsonNode requestBodyNode = operationNode.get("requestBody");
                         if (requestBodyNode.has("content")) {
@@ -236,31 +204,24 @@ public class SwaggerParser {
                                     JsonNode schemaNode = mediaTypeNode.get("schema");
                                     apiPath.setRequestBodySchema(schemaNode.toString());
                                     
-                                    // 处理schema中的$ref引用
                                     if (schemaNode.has("$ref")) {
                                         String ref = schemaNode.get("$ref").asText();
-                                        // 提取引用的schema名称
                                         String schemaName = ref.substring(ref.lastIndexOf("/") + 1);
-                                        // 查找对应的schema定义
                                         if (schemas.containsKey(schemaName)) {
                                             JsonNode referencedSchema = schemas.get(schemaName);
-                                            // 生成请求示例
                                             String requestExample = generateRequestExample(referencedSchema);
                                             if (!requestExample.isEmpty()) {
                                                 apiPath.setRequestExample(requestExample);
                                             }
                                         }
                                     } else if (apiPath.getRequestExample() != null && !apiPath.getRequestExample().isEmpty()) {
-                                        // 已经有示例值，不需要处理
                                     } else {
-                                        // 没有引用，也没有示例值，尝试从schema生成
                                         String requestExample = generateRequestExample(schemaNode);
                                         if (!requestExample.isEmpty()) {
                                             apiPath.setRequestExample(requestExample);
                                         }
                                     }
                                 }
-                                // 提取示例值
                                 if (mediaTypeNode.has("example")) {
                                     apiPath.setRequestExample(mediaTypeNode.get("example").toString());
                                 } else if (mediaTypeNode.has("examples")) {
@@ -288,12 +249,8 @@ public class SwaggerParser {
         return model;
     }
 
-    /**
-     * 根据schema生成请求示例
-     */
     private String generateRequestExample(JsonNode schemaNode) {
         if (schemaNode.has("$ref")) {
-            // 处理引用，暂时返回空，因为引用的schema应该在上面处理
             return "";
         } else if (schemaNode.has("type")) {
             String type = schemaNode.get("type").asText();

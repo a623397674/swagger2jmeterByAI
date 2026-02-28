@@ -1,11 +1,8 @@
-package com.tools.yajie;
+package io.swagger2jmeter.model;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Swagger/OpenAPI文档模型
- */
 public class SwaggerModel {
 
     private List<Tag> tags;

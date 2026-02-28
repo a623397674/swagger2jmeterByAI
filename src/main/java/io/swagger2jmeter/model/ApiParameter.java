@@ -1,8 +1,5 @@
-package com.tools.yajie;
+package io.swagger2jmeter.model;
 
-/**
- * Swagger/OpenAPI文档中的API参数模型
- */
 public class ApiParameter {
 
     private String name;
